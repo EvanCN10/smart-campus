@@ -18,7 +18,7 @@ export function parseMqttMessage(topic: string, payload: Buffer): void {
   try {
     parsed = JSON.parse(payload.toString())
   } catch {
-    console.error('[MQTT Parser] Payload bukan JSON valid:', payload.toString())
+    // console.error('[MQTT Parser] Payload bukan JSON valid:', payload.toString())
     return
   }
 

@@ -1,0 +1,29 @@
+{
+  "name": "smart-campus-backend",
+  "version": "1.0.0",
+  "description": "Smart Campus IoT Publisher Backend",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev:env": "nodemon src/publisher-env.ts",
+    "dev:occ": "nodemon src/publisher-occ.ts",
+    "dev:admin": "nodemon src/publisher-admin.ts",
+    "dev:logger": "nodemon src/subscriber-logger.ts",
+    "dev": "concurrently \"npm run dev:env\" \"npm run dev:occ\" \"npm run dev:admin\" \"npm run dev:logger\"",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mqtt": "^5.15.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

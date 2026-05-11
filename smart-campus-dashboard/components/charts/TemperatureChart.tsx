@@ -102,6 +102,7 @@ export function TemperatureChart() {
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4, strokeWidth: 0 }}
+              connectNulls={true}
             />
           ))}
         </LineChart>
