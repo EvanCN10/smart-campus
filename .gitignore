@@ -1,0 +1,34 @@
+# Monorepo ignore rules
+# Applies to both smart-campus-dashboard and smart-campus-backend
+
+# dependencies
+**/node_modules/
+
+# Next.js
+**/.next/
+**/out/
+
+# builds
+**/dist/
+**/build/
+
+# logs
+**/*.log
+**/.pnpm-debug.log*
+**/pnpm-debug.log*
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# env files
+**/.env*
+!**/.env.example
+
+# OS
+**/.DS_Store
+
+# editors
+**/.vscode/
+
+# safety: if you migrate from an embedded repo, ignore any backup git dirs
+**/.git-backup/
