@@ -1,13 +1,13 @@
-import { create } from 'zustand'
-import { DashboardState } from '@/lib/types'
+import { create } from "zustand";
+import { DashboardState } from "@/lib/types";
 
 // MAX_CHART_POINTS: berapa data point yang disimpan untuk chart
 // Kalau backend kirim data tiap 3 detik, 40 point = ~2 menit history
-const MAX_CHART_POINTS = 40
-const MAX_ALERTS = 50
+const MAX_CHART_POINTS = 40;
+const MAX_ALERTS = 50;
 
 export const useDashboardStore = create<DashboardState>((set) => ({
-  connectionStatus: 'connecting',
+  connectionStatus: "connecting",
   environments: {},
   occupancies: {},
   chartHistory: {},
@@ -27,45 +27,47 @@ export const useDashboardStore = create<DashboardState>((set) => ({
         humidity: null,
         airQuality: null,
         lastUpdated: null,
-      }
+      };
 
       const updated = {
         ...existing,
         [metric]: data.value,
         lastUpdated: data.timestamp,
-      }
+      };
 
       // Tambah data point ke chart history
-      const historyKey = `${roomId}-${metric}`
-      const currentHistory = state.chartHistory[historyKey] ?? []
+      const historyKey = `${roomId}-${metric}`;
+      const currentHistory = state.chartHistory[historyKey] ?? [];
       const newPoint = {
-        time: new Date(data.timestamp).toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
+        time: new Date(data.timestamp).toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
         }),
         value: data.value,
-      }
+      };
 
-      const updatedHistory = [...currentHistory, newPoint].slice(-MAX_CHART_POINTS)
+      const updatedHistory = [...currentHistory, newPoint].slice(
+        -MAX_CHART_POINTS,
+      );
 
       return {
         environments: { ...state.environments, [roomId]: updated },
         chartHistory: { ...state.chartHistory, [historyKey]: updatedHistory },
-      }
+      };
     }),
 
   updateOccupancy: (roomId, data) =>
     set((state) => {
-      const historyKey = `${roomId}-occupancy`
-      const currentHistory = state.chartHistory[historyKey] ?? []
+      const historyKey = `${roomId}-occupancy`;
+      const currentHistory = state.chartHistory[historyKey] ?? [];
       const newPoint = {
-        time: new Date(data.timestamp).toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit',
+        time: new Date(data.timestamp).toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
         }),
         value: data.count,
-      }
+      };
 
       return {
         occupancies: {
@@ -83,7 +85,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
           ...state.chartHistory,
           [historyKey]: [...currentHistory, newPoint].slice(-MAX_CHART_POINTS),
         },
-      }
+      };
     }),
 
   addAlert: (alert) =>
@@ -100,4 +102,4 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     })),
 
   setAnnouncement: (data) => set({ latestAnnouncement: data }),
-}))
+}));

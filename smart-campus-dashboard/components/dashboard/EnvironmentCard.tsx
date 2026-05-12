@@ -1,22 +1,22 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { Thermometer, Droplets, Wind } from 'lucide-react'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import type { RoomEnvironment } from '@/lib/types'
+import { motion } from "framer-motion";
+import { Thermometer, Droplets, Wind } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import type { RoomEnvironment } from "@/lib/types";
 
 interface EnvironmentCardProps {
-  room: RoomEnvironment
-  index: number
+  room: RoomEnvironment;
+  index: number;
 }
 
 function getAirQualityLabel(aqi: number | null): string {
-  if (aqi === null) return 'N/A'
-  if (aqi <= 50) return 'Good'
-  if (aqi <= 100) return 'Moderate'
-  if (aqi <= 150) return 'Unhealthy'
-  return 'Hazardous'
+  if (aqi === null) return "N/A";
+  if (aqi <= 50) return "Good";
+  if (aqi <= 100) return "Moderate";
+  if (aqi <= 150) return "Unhealthy";
+  return "Hazardous";
 }
 
 function MetricRow({
@@ -26,11 +26,11 @@ function MetricRow({
   unit,
   color,
 }: {
-  Icon: React.ElementType
-  label: string
-  value: number | null
-  unit: string
-  color: string
+  Icon: React.ElementType;
+  label: string;
+  value: number | null;
+  unit: string;
+  color: string;
 }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-border-main/50 last:border-0">
@@ -39,10 +39,10 @@ function MetricRow({
         {label}
       </div>
       <span className="text-text-primary font-semibold font-mono">
-        {value !== null ? `${value.toFixed(1)} ${unit}` : '—'}
+        {value !== null ? `${value.toFixed(1)} ${unit}` : "—"}
       </span>
     </div>
-  )
+  );
 }
 
 export function EnvironmentCard({ room, index }: EnvironmentCardProps) {
@@ -56,12 +56,16 @@ export function EnvironmentCard({ room, index }: EnvironmentCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-text-primary font-semibold text-base">{room.roomName}</h3>
-            <p className="text-text-muted text-xs mt-0.5 font-mono">{room.roomId}</p>
+            <h3 className="text-text-primary font-semibold text-base">
+              {room.roomName}
+            </h3>
+            <p className="text-text-muted text-xs mt-0.5 font-mono">
+              {room.roomId}
+            </p>
           </div>
           <Badge
-            variant={room.lastUpdated ? 'success' : 'muted'}
-            label={room.lastUpdated ? 'Live' : 'No Data'}
+            variant={room.lastUpdated ? "success" : "muted"}
+            label={room.lastUpdated ? "Live" : "No Data"}
             pulse={!!room.lastUpdated}
           />
         </div>
@@ -95,7 +99,13 @@ export function EnvironmentCard({ room, index }: EnvironmentCardProps) {
         {room.airQuality !== null && (
           <div className="mt-3 pt-3 border-t border-border-main/30">
             <Badge
-              variant={room.airQuality <= 50 ? 'success' : room.airQuality <= 100 ? 'warning' : 'danger'}
+              variant={
+                room.airQuality <= 50
+                  ? "success"
+                  : room.airQuality <= 100
+                    ? "warning"
+                    : "danger"
+              }
               label={`Air: ${getAirQualityLabel(room.airQuality)}`}
             />
           </div>
@@ -104,10 +114,10 @@ export function EnvironmentCard({ room, index }: EnvironmentCardProps) {
         {/* Last updated */}
         {room.lastUpdated && (
           <p className="text-text-muted text-xs mt-3">
-            Updated: {new Date(room.lastUpdated).toLocaleTimeString('id-ID')}
+            Updated: {new Date(room.lastUpdated).toLocaleTimeString("id-ID")}
           </p>
         )}
       </Card>
     </motion.div>
-  )
+  );
 }

@@ -1,63 +1,73 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { X } from 'lucide-react'
-import { type ReactNode, useEffect, useMemo, useState } from 'react'
-import { useDashboardStore } from '@/store/useDashboardStore'
-import { Navbar } from '@/components/dashboard/Navbar'
-import { EnvironmentCard } from '@/components/dashboard/EnvironmentCard'
-import { OccupancyCard } from '@/components/dashboard/OccupancyCard'
-import { AlertPanel } from '@/components/dashboard/AlertPanel'
-import { TemperatureChart } from '@/components/charts/TemperatureChart'
+import { motion } from "framer-motion";
+import { X } from "lucide-react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useDashboardStore } from "@/store/useDashboardStore";
+import { Navbar } from "@/components/dashboard/Navbar";
+import { EnvironmentCard } from "@/components/dashboard/EnvironmentCard";
+import { OccupancyCard } from "@/components/dashboard/OccupancyCard";
+import { AlertPanel } from "@/components/dashboard/AlertPanel";
+import { TemperatureChart } from "@/components/charts/TemperatureChart";
 
-function StatPill({ active, children }: { active: boolean; children: ReactNode }) {
+function StatPill({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
   return (
     <span
       className={
         active
-          ? 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border bg-accent/20 text-accent border-accent/30'
-          : 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border bg-bg-secondary text-text-muted border-border-main'
+          ? "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border bg-accent/20 text-accent border-accent/30"
+          : "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border bg-bg-secondary text-text-muted border-border-main"
       }
     >
       {children}
     </span>
-  )
+  );
 }
 
 export default function DashboardPage() {
-  type SummaryModalKey = 'Rooms Monitored' | 'Active Alerts' | 'Critical Alerts' | 'Avg Temperature'
-  type RoomFilter = 'all' | 'room-a' | 'room-b' | 'room-c'
+  type SummaryModalKey =
+    | "Rooms Monitored"
+    | "Active Alerts"
+    | "Critical Alerts"
+    | "Avg Temperature";
+  type RoomFilter = "all" | "room-a" | "room-b" | "room-c";
 
-  const environments = useDashboardStore((s) => s.environments)
-  const occupancies  = useDashboardStore((s) => s.occupancies)
-  const alerts       = useDashboardStore((s) => s.alerts)
-  const connectionStatus = useDashboardStore((s) => s.connectionStatus)
+  const environments = useDashboardStore((s) => s.environments);
+  const occupancies = useDashboardStore((s) => s.occupancies);
+  const alerts = useDashboardStore((s) => s.alerts);
+  const connectionStatus = useDashboardStore((s) => s.connectionStatus);
 
-  const [activeModal, setActiveModal] = useState<SummaryModalKey | null>(null)
-  const [roomFilter, setRoomFilter] = useState<RoomFilter>('all')
+  const [activeModal, setActiveModal] = useState<SummaryModalKey | null>(null);
+  const [roomFilter, setRoomFilter] = useState<RoomFilter>("all");
 
-  const closeModal = () => setActiveModal(null)
+  const closeModal = () => setActiveModal(null);
 
   useEffect(() => {
-    if (!activeModal) return
+    if (!activeModal) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeModal()
-    }
+      if (e.key === "Escape") closeModal();
+    };
 
-    window.addEventListener('keydown', onKeyDown)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    window.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [activeModal])
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [activeModal]);
 
-  const envList  = Object.values(environments)
-  const occList  = Object.values(occupancies)
-  const critical = alerts.filter((a) => a.severity === 'critical').length
+  const envList = Object.values(environments);
+  const occList = Object.values(occupancies);
+  const critical = alerts.filter((a) => a.severity === "critical").length;
 
   // Hitung rata-rata suhu semua ruangan
   const avgTemp =
@@ -66,95 +76,99 @@ export default function DashboardPage() {
           envList.reduce((sum, r) => sum + (r.temperature ?? 0), 0) /
           envList.length
         ).toFixed(1)
-      : null
+      : null;
 
   const summaryStats = [
     {
-      label: 'Rooms Monitored',
+      label: "Rooms Monitored",
       value: envList.length,
-      color: 'text-accent',
+      color: "text-accent",
     },
     {
-      label: 'Active Alerts',
+      label: "Active Alerts",
       value: alerts.length,
-      color: alerts.length > 0 ? 'text-warning' : 'text-success',
+      color: alerts.length > 0 ? "text-warning" : "text-success",
     },
     {
-      label: 'Critical Alerts',
+      label: "Critical Alerts",
       value: critical,
-      color: critical > 0 ? 'text-danger' : 'text-success',
+      color: critical > 0 ? "text-danger" : "text-success",
     },
     {
-      label: 'Avg Temperature',
-      value: avgTemp ? `${avgTemp}°C` : '—',
-      color: 'text-text-primary',
+      label: "Avg Temperature",
+      value: avgTemp ? `${avgTemp}°C` : "—",
+      color: "text-text-primary",
     },
-  ] as const
+  ] as const;
 
   const roomFilterOptions = useMemo(
-    () =>
-      [
-        { id: 'all' as const, label: 'All' },
-        { id: 'room-a' as const, label: 'Lab A' },
-        { id: 'room-c' as const, label: 'Perpustakaan' },
-        { id: 'room-b' as const, label: 'Ruang Kelas B' },
-      ],
-    []
-  )
+    () => [
+      { id: "all" as const, label: "All" },
+      { id: "room-a" as const, label: "Lab A" },
+      { id: "room-c" as const, label: "Perpustakaan" },
+      { id: "room-b" as const, label: "Ruang Kelas B" },
+    ],
+    [],
+  );
 
   const roomsToShow = useMemo(() => {
-    if (roomFilter !== 'all') return [roomFilter]
+    if (roomFilter !== "all") return [roomFilter];
 
-    const ids = new Set<string>()
-    for (const r of envList) ids.add(r.roomId)
-    for (const r of occList) ids.add(r.roomId)
+    const ids = new Set<string>();
+    for (const r of envList) ids.add(r.roomId);
+    for (const r of occList) ids.add(r.roomId);
 
     // Biar urut konsisten sesuai opsi filter yang diminta
-    const preferred = ['room-a', 'room-c', 'room-b']
-    const rest = [...ids].filter((id) => !preferred.includes(id)).sort()
+    const preferred = ["room-a", "room-c", "room-b"];
+    const rest = [...ids].filter((id) => !preferred.includes(id)).sort();
 
-    return [...preferred.filter((id) => ids.has(id)), ...rest]
-  }, [envList, occList, roomFilter])
+    return [...preferred.filter((id) => ids.has(id)), ...rest];
+  }, [envList, occList, roomFilter]);
 
   const modalTitle = useMemo(() => {
-    if (!activeModal) return ''
-    if (activeModal === 'Rooms Monitored') return 'Room Monitoring'
-    return activeModal
-  }, [activeModal])
+    if (!activeModal) return "";
+    if (activeModal === "Rooms Monitored") return "Room Monitoring";
+    return activeModal;
+  }, [activeModal]);
 
   const severityStyles = {
     critical: {
-      label: 'CRITICAL',
-      color: 'text-danger',
-      bg: 'bg-danger/10',
-      border: 'border-danger/30',
+      label: "CRITICAL",
+      color: "text-danger",
+      bg: "bg-danger/10",
+      border: "border-danger/30",
     },
     warning: {
-      label: 'WARNING',
-      color: 'text-warning',
-      bg: 'bg-warning/10',
-      border: 'border-warning/30',
+      label: "WARNING",
+      color: "text-warning",
+      bg: "bg-warning/10",
+      border: "border-warning/30",
     },
     info: {
-      label: 'INFO',
-      color: 'text-accent',
-      bg: 'bg-accent/10',
-      border: 'border-accent/30',
+      label: "INFO",
+      color: "text-accent",
+      bg: "bg-accent/10",
+      border: "border-accent/30",
     },
-  } as const
+  } as const;
 
   const filteredAlerts = useMemo(() => {
-    if (!activeModal) return []
-    if (activeModal === 'Critical Alerts') return alerts.filter((a) => a.severity === 'critical')
-    if (activeModal === 'Active Alerts') return alerts
-    return []
-  }, [activeModal, alerts])
+    if (!activeModal) return [];
+    if (activeModal === "Critical Alerts")
+      return alerts.filter((a) => a.severity === "critical");
+    if (activeModal === "Active Alerts") return alerts;
+    return [];
+  }, [activeModal, alerts]);
 
   function formatTime(ts: string | null | undefined) {
-    if (!ts) return '—'
-    const d = new Date(ts)
-    if (Number.isNaN(d.getTime())) return '—'
-    return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    if (!ts) return "—";
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
   }
 
   return (
@@ -162,10 +176,11 @@ export default function DashboardPage() {
       <Navbar />
 
       <main className="pt-20 px-4 sm:px-6 pb-12 max-w-[1600px] mx-auto">
-
         {/* ── Page header ─────────────────────────────────── */}
         <div className="py-6">
-          <h1 className="text-xl font-bold text-text-primary">Campus Overview</h1>
+          <h1 className="text-xl font-bold text-text-primary">
+            Campus Overview
+          </h1>
           <p className="text-text-secondary text-sm mt-1">
             Real-time monitoring via MQTT microservices
           </p>
@@ -180,14 +195,16 @@ export default function DashboardPage() {
                 transition={{ delay: i * 0.07 }}
                 type="button"
                 onClick={() => {
-                  setActiveModal(stat.label)
-                  if (stat.label === 'Rooms Monitored') setRoomFilter('all')
+                  setActiveModal(stat.label);
+                  if (stat.label === "Rooms Monitored") setRoomFilter("all");
                 }}
                 aria-haspopup="dialog"
                 className="bg-surface border border-border-main rounded-xl p-4 text-left transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer"
               >
                 <p className="text-text-muted text-xs">{stat.label}</p>
-                <p className={`text-2xl font-bold font-mono mt-1 ${stat.color}`}>
+                <p
+                  className={`text-2xl font-bold font-mono mt-1 ${stat.color}`}
+                >
                   {stat.value}
                 </p>
               </motion.button>
@@ -218,11 +235,15 @@ export default function DashboardPage() {
                       {modalTitle}
                     </h2>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <StatPill active={connectionStatus === 'connected'}>
+                      <StatPill active={connectionStatus === "connected"}>
                         MQTT: {connectionStatus}
                       </StatPill>
-                      <StatPill active={alerts.length > 0}>Alerts: {alerts.length}</StatPill>
-                      <StatPill active={critical > 0}>Critical: {critical}</StatPill>
+                      <StatPill active={alerts.length > 0}>
+                        Alerts: {alerts.length}
+                      </StatPill>
+                      <StatPill active={critical > 0}>
+                        Critical: {critical}
+                      </StatPill>
                     </div>
                   </div>
 
@@ -236,10 +257,12 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                {activeModal === 'Rooms Monitored' && (
+                {activeModal === "Rooms Monitored" && (
                   <div>
                     <div className="flex flex-wrap items-center gap-2 mb-4">
-                      <p className="text-text-muted text-xs mr-1">Filter room:</p>
+                      <p className="text-text-muted text-xs mr-1">
+                        Filter room:
+                      </p>
                       {roomFilterOptions.map((opt) => (
                         <button
                           key={opt.id}
@@ -247,8 +270,8 @@ export default function DashboardPage() {
                           onClick={() => setRoomFilter(opt.id)}
                           className={
                             roomFilter === opt.id
-                              ? 'px-3 py-1.5 rounded-full text-xs font-medium border bg-accent/20 text-accent border-accent/30'
-                              : 'px-3 py-1.5 rounded-full text-xs font-medium border bg-bg-secondary text-text-muted border-border-main hover:bg-surface-hover'
+                              ? "px-3 py-1.5 rounded-full text-xs font-medium border bg-accent/20 text-accent border-accent/30"
+                              : "px-3 py-1.5 rounded-full text-xs font-medium border bg-bg-secondary text-text-muted border-border-main hover:bg-surface-hover"
                           }
                         >
                           {opt.label}
@@ -263,10 +286,11 @@ export default function DashboardPage() {
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {roomsToShow.map((roomId) => {
-                          const env = environments[roomId]
-                          const occ = occupancies[roomId]
+                          const env = environments[roomId];
+                          const occ = occupancies[roomId];
 
-                          const roomName = env?.roomName ?? occ?.roomName ?? roomId
+                          const roomName =
+                            env?.roomName ?? occ?.roomName ?? roomId;
 
                           return (
                             <div
@@ -278,35 +302,47 @@ export default function DashboardPage() {
                                   <p className="text-text-primary font-semibold text-sm truncate">
                                     {roomName}
                                   </p>
-                                  <p className="text-text-muted text-xs font-mono">{roomId}</p>
+                                  <p className="text-text-muted text-xs font-mono">
+                                    {roomId}
+                                  </p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-text-muted text-[11px]">Last update</p>
+                                  <p className="text-text-muted text-[11px]">
+                                    Last update
+                                  </p>
                                   <p className="text-text-secondary text-xs font-mono">
-                                    {formatTime(env?.lastUpdated ?? occ?.lastUpdated)}
+                                    {formatTime(
+                                      env?.lastUpdated ?? occ?.lastUpdated,
+                                    )}
                                   </p>
                                 </div>
                               </div>
 
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                                 <div className="rounded-xl border border-border-main bg-surface/40 p-3">
-                                  <p className="text-text-muted text-xs">Temperature</p>
+                                  <p className="text-text-muted text-xs">
+                                    Temperature
+                                  </p>
                                   <p className="text-text-primary font-mono text-lg mt-1">
-                                    {env?.temperature ?? '—'}
-                                    {env?.temperature != null ? '°C' : ''}
+                                    {env?.temperature ?? "—"}
+                                    {env?.temperature != null ? "°C" : ""}
                                   </p>
                                 </div>
                                 <div className="rounded-xl border border-border-main bg-surface/40 p-3">
-                                  <p className="text-text-muted text-xs">Humidity</p>
+                                  <p className="text-text-muted text-xs">
+                                    Humidity
+                                  </p>
                                   <p className="text-text-primary font-mono text-lg mt-1">
-                                    {env?.humidity ?? '—'}
-                                    {env?.humidity != null ? '%' : ''}
+                                    {env?.humidity ?? "—"}
+                                    {env?.humidity != null ? "%" : ""}
                                   </p>
                                 </div>
                                 <div className="rounded-xl border border-border-main bg-surface/40 p-3">
-                                  <p className="text-text-muted text-xs">Air Quality</p>
+                                  <p className="text-text-muted text-xs">
+                                    Air Quality
+                                  </p>
                                   <p className="text-text-primary font-mono text-lg mt-1">
-                                    {env?.airQuality ?? '—'}
+                                    {env?.airQuality ?? "—"}
                                   </p>
                                 </div>
                               </div>
@@ -314,19 +350,23 @@ export default function DashboardPage() {
                               <div className="mt-4 rounded-xl border border-border-main bg-surface/40 p-3">
                                 <div className="flex items-center justify-between gap-3">
                                   <div>
-                                    <p className="text-text-muted text-xs">Occupancy</p>
+                                    <p className="text-text-muted text-xs">
+                                      Occupancy
+                                    </p>
                                     <p className="text-text-primary font-mono text-xl mt-1">
-                                      {occ ? `${occ.count}/${occ.capacity}` : '—'}
+                                      {occ
+                                        ? `${occ.count}/${occ.capacity}`
+                                        : "—"}
                                     </p>
                                   </div>
                                   {occ ? (
                                     <span
                                       className={
                                         occ.percentage >= 90
-                                          ? 'px-2.5 py-1 rounded-full text-xs font-medium border bg-danger/20 text-danger border-danger/30'
+                                          ? "px-2.5 py-1 rounded-full text-xs font-medium border bg-danger/20 text-danger border-danger/30"
                                           : occ.percentage >= 70
-                                            ? 'px-2.5 py-1 rounded-full text-xs font-medium border bg-warning/20 text-warning border-warning/30'
-                                            : 'px-2.5 py-1 rounded-full text-xs font-medium border bg-success/20 text-success border-success/30'
+                                            ? "px-2.5 py-1 rounded-full text-xs font-medium border bg-warning/20 text-warning border-warning/30"
+                                            : "px-2.5 py-1 rounded-full text-xs font-medium border bg-success/20 text-success border-success/30"
                                       }
                                     >
                                       {occ.percentage}%
@@ -339,14 +379,14 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                             </div>
-                          )
+                          );
                         })}
                       </div>
                     )}
                   </div>
                 )}
 
-                {activeModal === 'Active Alerts' && (
+                {activeModal === "Active Alerts" && (
                   <div>
                     {alerts.length === 0 ? (
                       <div className="bg-bg-secondary border border-border-main rounded-2xl p-8 text-center text-text-muted text-sm">
@@ -355,7 +395,7 @@ export default function DashboardPage() {
                     ) : (
                       <div className="space-y-2">
                         {filteredAlerts.map((alert) => {
-                          const s = severityStyles[alert.severity]
+                          const s = severityStyles[alert.severity];
                           return (
                             <div
                               key={alert.id}
@@ -363,25 +403,37 @@ export default function DashboardPage() {
                             >
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                                  <span className={`text-xs font-bold ${s.color}`}>{s.label}</span>
-                                  <span className="text-text-muted text-xs">·</span>
-                                  <span className="text-text-muted text-xs font-mono">{alert.location}</span>
-                                  <span className="text-text-muted text-xs">·</span>
-                                  <span className="text-text-muted text-xs font-mono">{formatTime(alert.timestamp)}</span>
+                                  <span
+                                    className={`text-xs font-bold ${s.color}`}
+                                  >
+                                    {s.label}
+                                  </span>
+                                  <span className="text-text-muted text-xs">
+                                    ·
+                                  </span>
+                                  <span className="text-text-muted text-xs font-mono">
+                                    {alert.location}
+                                  </span>
+                                  <span className="text-text-muted text-xs">
+                                    ·
+                                  </span>
+                                  <span className="text-text-muted text-xs font-mono">
+                                    {formatTime(alert.timestamp)}
+                                  </span>
                                 </div>
                                 <p className="text-text-secondary text-sm leading-snug break-words">
                                   {alert.message}
                                 </p>
                               </div>
                             </div>
-                          )
+                          );
                         })}
                       </div>
                     )}
                   </div>
                 )}
 
-                {activeModal === 'Critical Alerts' && (
+                {activeModal === "Critical Alerts" && (
                   <div>
                     {filteredAlerts.length === 0 ? (
                       <div className="bg-bg-secondary border border-border-main rounded-2xl p-8 text-center text-text-muted text-sm">
@@ -390,7 +442,7 @@ export default function DashboardPage() {
                     ) : (
                       <div className="space-y-2">
                         {filteredAlerts.map((alert) => {
-                          const s = severityStyles.critical
+                          const s = severityStyles.critical;
                           return (
                             <div
                               key={alert.id}
@@ -398,33 +450,48 @@ export default function DashboardPage() {
                             >
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                                  <span className={`text-xs font-bold ${s.color}`}>{s.label}</span>
-                                  <span className="text-text-muted text-xs">·</span>
-                                  <span className="text-text-muted text-xs font-mono">{alert.location}</span>
-                                  <span className="text-text-muted text-xs">·</span>
-                                  <span className="text-text-muted text-xs font-mono">{formatTime(alert.timestamp)}</span>
+                                  <span
+                                    className={`text-xs font-bold ${s.color}`}
+                                  >
+                                    {s.label}
+                                  </span>
+                                  <span className="text-text-muted text-xs">
+                                    ·
+                                  </span>
+                                  <span className="text-text-muted text-xs font-mono">
+                                    {alert.location}
+                                  </span>
+                                  <span className="text-text-muted text-xs">
+                                    ·
+                                  </span>
+                                  <span className="text-text-muted text-xs font-mono">
+                                    {formatTime(alert.timestamp)}
+                                  </span>
                                 </div>
                                 <p className="text-text-secondary text-sm leading-snug break-words">
                                   {alert.message}
                                 </p>
                               </div>
                             </div>
-                          )
+                          );
                         })}
                       </div>
                     )}
                   </div>
                 )}
 
-                {activeModal === 'Avg Temperature' && (
+                {activeModal === "Avg Temperature" && (
                   <div>
                     <div className="bg-bg-secondary border border-border-main rounded-2xl p-4 mb-4">
-                      <p className="text-text-muted text-xs">Average temperature (all rooms)</p>
+                      <p className="text-text-muted text-xs">
+                        Average temperature (all rooms)
+                      </p>
                       <p className="text-text-primary font-mono text-3xl mt-2">
-                        {avgTemp ? `${avgTemp}°C` : '—'}
+                        {avgTemp ? `${avgTemp}°C` : "—"}
                       </p>
                       <p className="text-text-muted text-xs mt-2">
-                        Detail per-room di bawah (klik Room Monitoring untuk filter).
+                        Detail per-room di bawah (klik Room Monitoring untuk
+                        filter).
                       </p>
                     </div>
 
@@ -447,17 +514,21 @@ export default function DashboardPage() {
                                   <p className="text-text-primary font-semibold text-sm truncate">
                                     {room.roomName}
                                   </p>
-                                  <p className="text-text-muted text-xs font-mono">{room.roomId}</p>
+                                  <p className="text-text-muted text-xs font-mono">
+                                    {room.roomId}
+                                  </p>
                                 </div>
                                 <p className="text-text-muted text-xs font-mono">
                                   {formatTime(room.lastUpdated)}
                                 </p>
                               </div>
                               <div className="mt-4 rounded-xl border border-border-main bg-surface/40 p-3">
-                                <p className="text-text-muted text-xs">Temperature</p>
+                                <p className="text-text-muted text-xs">
+                                  Temperature
+                                </p>
                                 <p className="text-text-primary font-mono text-2xl mt-1">
-                                  {room.temperature ?? '—'}
-                                  {room.temperature != null ? '°C' : ''}
+                                  {room.temperature ?? "—"}
+                                  {room.temperature != null ? "°C" : ""}
                                 </p>
                               </div>
                             </div>
@@ -532,5 +603,5 @@ export default function DashboardPage() {
         </section>
       </main>
     </div>
-  )
+  );
 }
