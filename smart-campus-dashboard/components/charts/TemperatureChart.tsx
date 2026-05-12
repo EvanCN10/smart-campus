@@ -17,17 +17,31 @@ import { Card } from '@/components/ui/Card'
 const ROOM_COLORS = ['#4FC3E8', '#2DD4BF', '#F5A623', '#FF4D6A', '#A78BFA']
 
 // Custom Tooltip agar tampil sesuai tema gelap
-function CustomTooltip({ active, payload, label }: any) {
+type TooltipEntry = {
+  color?: string
+  name?: string
+  value?: number
+}
+
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: TooltipEntry[]
+  label?: string
+}) {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-surface border border-border-main rounded-xl p-3 shadow-xl">
       <p className="text-text-muted text-xs mb-2">{label}</p>
-      {payload.map((entry: any, i: number) => (
+      {payload.map((entry, i) => (
         <div key={i} className="flex items-center gap-2 text-sm">
           <span className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
           <span className="text-text-secondary">{entry.name}:</span>
           <span className="text-text-primary font-mono font-semibold">
-            {entry.value?.toFixed(1)}°C
+            {typeof entry.value === 'number' ? entry.value.toFixed(1) : '—'}°C
           </span>
         </div>
       ))}

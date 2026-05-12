@@ -11,13 +11,6 @@ interface EnvironmentCardProps {
   index: number
 }
 
-function getTemperatureStatus(temp: number | null): 'success' | 'warning' | 'danger' {
-  if (temp === null) return 'success'
-  if (temp > 35) return 'danger'
-  if (temp > 30) return 'warning'
-  return 'success'
-}
-
 function getAirQualityLabel(aqi: number | null): string {
   if (aqi === null) return 'N/A'
   if (aqi <= 50) return 'Good'
@@ -53,8 +46,6 @@ function MetricRow({
 }
 
 export function EnvironmentCard({ room, index }: EnvironmentCardProps) {
-  const tempStatus = getTemperatureStatus(room.temperature)
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

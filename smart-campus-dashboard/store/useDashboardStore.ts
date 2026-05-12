@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { DashboardState, EnvironmentData, OccupancyData, AlertData, AnnouncementData } from '@/lib/types'
+import { DashboardState } from '@/lib/types'
 
 // MAX_CHART_POINTS: berapa data point yang disimpan untuk chart
 // Kalau backend kirim data tiap 3 detik, 40 point = ~2 menit history

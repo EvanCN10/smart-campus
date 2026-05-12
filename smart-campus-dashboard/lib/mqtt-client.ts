@@ -1,4 +1,3 @@
-// SINGLETON PATTERN
 // File ini mengekspor satu instance MQTT client yang dibuat sekali
 // dan dipakai di seluruh aplikasi (tidak membuat koneksi baru tiap render)
 
