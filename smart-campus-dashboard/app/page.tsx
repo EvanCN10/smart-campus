@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
@@ -8,6 +6,10 @@ import { Navbar } from "@/components/dashboard/Navbar";
 import { EnvironmentCard } from "@/components/dashboard/EnvironmentCard";
 import { OccupancyCard } from "@/components/dashboard/OccupancyCard";
 import { AlertPanel } from "@/components/dashboard/AlertPanel";
+import { ControlPanel } from "@/components/dashboard/ControlPanel";
+import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
+import { SystemStatusPanel } from "@/components/dashboard/SystemStatusPanel";
+import { RoomFilter as RoomFilterComponent } from "@/components/dashboard/RoomFilter";
 import { TemperatureChart } from "@/components/charts/TemperatureChart";
 
 function StatPill({
@@ -36,15 +38,14 @@ export default function DashboardPage() {
     | "Active Alerts"
     | "Critical Alerts"
     | "Avg Temperature";
-  type RoomFilter = "all" | "room-a" | "room-b" | "room-c";
 
   const environments = useDashboardStore((s) => s.environments);
   const occupancies = useDashboardStore((s) => s.occupancies);
   const alerts = useDashboardStore((s) => s.alerts);
   const connectionStatus = useDashboardStore((s) => s.connectionStatus);
+  const selectedRoom = useDashboardStore((s) => s.selectedRoomFilter);
 
   const [activeModal, setActiveModal] = useState<SummaryModalKey | null>(null);
-  const [roomFilter, setRoomFilter] = useState<RoomFilter>("all");
 
   const closeModal = () => setActiveModal(null);
 
@@ -65,8 +66,13 @@ export default function DashboardPage() {
     };
   }, [activeModal]);
 
-  const envList = Object.values(environments);
-  const occList = Object.values(occupancies);
+  // Fitur Dashboard: Filter berdasarkan room yang dipilih
+  const envList = Object.values(environments).filter(
+    (r) => !selectedRoom || r.roomId === selectedRoom
+  );
+  const occList = Object.values(occupancies).filter(
+    (r) => !selectedRoom || r.roomId === selectedRoom
+  );
   const critical = alerts.filter((a) => a.severity === "critical").length;
 
   // Hitung rata-rata suhu semua ruangan
@@ -100,30 +106,6 @@ export default function DashboardPage() {
       color: "text-text-primary",
     },
   ] as const;
-
-  const roomFilterOptions = useMemo(
-    () => [
-      { id: "all" as const, label: "All" },
-      { id: "room-a" as const, label: "Lab A" },
-      { id: "room-c" as const, label: "Perpustakaan" },
-      { id: "room-b" as const, label: "Ruang Kelas B" },
-    ],
-    [],
-  );
-
-  const roomsToShow = useMemo(() => {
-    if (roomFilter !== "all") return [roomFilter];
-
-    const ids = new Set<string>();
-    for (const r of envList) ids.add(r.roomId);
-    for (const r of occList) ids.add(r.roomId);
-
-    // Biar urut konsisten sesuai opsi filter yang diminta
-    const preferred = ["room-a", "room-c", "room-b"];
-    const rest = [...ids].filter((id) => !preferred.includes(id)).sort();
-
-    return [...preferred.filter((id) => ids.has(id)), ...rest];
-  }, [envList, occList, roomFilter]);
 
   const modalTitle = useMemo(() => {
     if (!activeModal) return "";
@@ -196,7 +178,6 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => {
                   setActiveModal(stat.label);
-                  if (stat.label === "Rooms Monitored") setRoomFilter("all");
                 }}
                 aria-haspopup="dialog"
                 className="bg-surface border border-border-main rounded-xl p-4 text-left transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer"
@@ -248,10 +229,10 @@ export default function DashboardPage() {
                   </div>
 
                   <button
-                    type="button"
-                    onClick={closeModal}
-                    className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-xl border border-border-main bg-bg-secondary hover:bg-surface-hover transition-colors"
-                    aria-label="Close popup"
+                     type="button"
+                     onClick={closeModal}
+                     className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-xl border border-border-main bg-bg-secondary hover:bg-surface-hover transition-colors"
+                     aria-label="Close popup"
                   >
                     <X size={16} className="text-text-secondary" />
                   </button>
@@ -259,42 +240,19 @@ export default function DashboardPage() {
 
                 {activeModal === "Rooms Monitored" && (
                   <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                      <p className="text-text-muted text-xs mr-1">
-                        Filter room:
-                      </p>
-                      {roomFilterOptions.map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setRoomFilter(opt.id)}
-                          className={
-                            roomFilter === opt.id
-                              ? "px-3 py-1.5 rounded-full text-xs font-medium border bg-accent/20 text-accent border-accent/30"
-                              : "px-3 py-1.5 rounded-full text-xs font-medium border bg-bg-secondary text-text-muted border-border-main hover:bg-surface-hover"
-                          }
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {roomsToShow.length === 0 ? (
+                    {envList.length === 0 ? (
                       <div className="bg-bg-secondary border border-border-main rounded-2xl p-8 text-center text-text-muted text-sm">
                         Belum ada data ruangan.
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {roomsToShow.map((roomId) => {
-                          const env = environments[roomId];
-                          const occ = occupancies[roomId];
-
-                          const roomName =
-                            env?.roomName ?? occ?.roomName ?? roomId;
+                        {envList.map((env) => {
+                          const occ = occupancies[env.roomId];
+                          const roomName = env.roomName;
 
                           return (
                             <div
-                              key={roomId}
+                              key={env.roomId}
                               className="bg-bg-secondary border border-border-main rounded-2xl p-4"
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -303,7 +261,7 @@ export default function DashboardPage() {
                                     {roomName}
                                   </p>
                                   <p className="text-text-muted text-xs font-mono">
-                                    {roomId}
+                                    {env.roomId}
                                   </p>
                                 </div>
                                 <div className="text-right">
@@ -312,7 +270,7 @@ export default function DashboardPage() {
                                   </p>
                                   <p className="text-text-secondary text-xs font-mono">
                                     {formatTime(
-                                      env?.lastUpdated ?? occ?.lastUpdated,
+                                      env.lastUpdated ?? occ?.lastUpdated,
                                     )}
                                   </p>
                                 </div>
@@ -324,8 +282,8 @@ export default function DashboardPage() {
                                     Temperature
                                   </p>
                                   <p className="text-text-primary font-mono text-lg mt-1">
-                                    {env?.temperature ?? "—"}
-                                    {env?.temperature != null ? "°C" : ""}
+                                    {env.temperature ?? "—"}
+                                    {env.temperature != null ? "°C" : ""}
                                   </p>
                                 </div>
                                 <div className="rounded-xl border border-border-main bg-surface/40 p-3">
@@ -333,8 +291,8 @@ export default function DashboardPage() {
                                     Humidity
                                   </p>
                                   <p className="text-text-primary font-mono text-lg mt-1">
-                                    {env?.humidity ?? "—"}
-                                    {env?.humidity != null ? "%" : ""}
+                                    {env.humidity ?? "—"}
+                                    {env.humidity != null ? "%" : ""}
                                   </p>
                                 </div>
                                 <div className="rounded-xl border border-border-main bg-surface/40 p-3">
@@ -342,7 +300,7 @@ export default function DashboardPage() {
                                     Air Quality
                                   </p>
                                   <p className="text-text-primary font-mono text-lg mt-1">
-                                    {env?.airQuality ?? "—"}
+                                    {env.airQuality ?? "—"}
                                   </p>
                                 </div>
                               </div>
@@ -490,8 +448,7 @@ export default function DashboardPage() {
                         {avgTemp ? `${avgTemp}°C` : "—"}
                       </p>
                       <p className="text-text-muted text-xs mt-2">
-                        Detail per-room di bawah (klik Room Monitoring untuk
-                        filter).
+                        Detail per-room di bawah.
                       </p>
                     </div>
 
@@ -542,12 +499,20 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* ── Announcement Banner ──────────────────────────── */}
+        <AnnouncementBanner />
+
+        {/* ── Room Filter (Kontrol Interaktif) ─────────────── */}
+        <div className="mb-6 mt-4">
+          <RoomFilterComponent />
+        </div>
+
         {/* ── Temperature chart ────────────────────────────── */}
         <section className="mb-8">
           <TemperatureChart />
         </section>
 
-        {/* ── Environment + Alert ──────────────────────────── */}
+        {/* ── Environment + Alert + Control ─────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
           {/* Environment cards (kiri, 2/3 lebar) */}
           <div className="xl:col-span-2">
@@ -573,12 +538,32 @@ export default function DashboardPage() {
           </div>
 
           {/* Alert panel (kanan, 1/3 lebar) */}
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-text-primary font-semibold mb-4 flex items-center gap-2 text-sm">
+                <span className="w-1 h-4 bg-danger rounded-full" />
+                Alert Center
+              </h2>
+              <AlertPanel />
+            </div>
+          </div>
+        </div>
+
+        {/* ── Control Panel + System Status ─────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <h2 className="text-text-primary font-semibold mb-4 flex items-center gap-2 text-sm">
-              <span className="w-1 h-4 bg-danger rounded-full" />
-              Alert Center
+              <span className="w-1 h-4 bg-warning rounded-full" />
+              Interactive Controls
             </h2>
-            <AlertPanel />
+            <ControlPanel />
+          </div>
+          <div>
+            <h2 className="text-text-primary font-semibold mb-4 flex items-center gap-2 text-sm">
+              <span className="w-1 h-4 bg-success rounded-full" />
+              Service Status (LWT)
+            </h2>
+            <SystemStatusPanel />
           </div>
         </div>
 

@@ -5,13 +5,15 @@ import type {
   AlertData,
   SystemStatusData,
   AnnouncementData,
+  SensorMetadata,
 } from '@/lib/types'
 
 // Fungsi ini dipanggil setiap kali pesan MQTT masuk
 // topic: string path seperti "campus/environment/room-a/temperature"
 // payload: Buffer yang harus dikonversi ke string lalu di-parse JSON
+// packet: MQTT v5 packet yang berisi user properties, dll
 
-export function parseMqttMessage(topic: string, payload: Buffer): void {
+export function parseMqttMessage(topic: string, payload: Buffer, packet?: any): void {
   const store = useDashboardStore.getState()
 
   let parsed: unknown
@@ -38,12 +40,23 @@ export function parseMqttMessage(topic: string, payload: Buffer): void {
     const metric = segments[3]
     const data = parsed as EnvironmentData
 
+    // Fitur MQTT: Membaca User Properties (Metadata) dari MQTT v5 packet
+    // User Properties dikirim oleh publisher-env sebagai metadata sensor
+    let metadata: SensorMetadata | undefined
+    if (packet?.properties?.userProperties) {
+      const props = packet.properties.userProperties
+      metadata = {
+        sensorType: props['sensor-type'] ?? null,
+        locationBuilding: props['location-building'] ?? null,
+      }
+    }
+
     if (metric === 'temperature') {
-      store.updateEnvironment(roomId, 'temperature', data)
+      store.updateEnvironment(roomId, 'temperature', data, metadata)
     } else if (metric === 'humidity') {
-      store.updateEnvironment(roomId, 'humidity', data)
+      store.updateEnvironment(roomId, 'humidity', data, metadata)
     } else if (metric === 'air-quality') {
-      store.updateEnvironment(roomId, 'airQuality', data)
+      store.updateEnvironment(roomId, 'airQuality', data, metadata)
     }
     return
   }

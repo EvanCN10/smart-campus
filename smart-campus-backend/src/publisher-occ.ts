@@ -16,6 +16,7 @@ const willPayload: SystemStatusData = {
 
 const client = mqtt.connect(brokerUrl, {
   clientId: `publisher_occ_${Math.random().toString(16).slice(3)}`,
+  protocolVersion: 5, // MQTT v5 untuk User Properties dan Message Expiry
   will: {
     topic: "campus/system/sensor-occupancy/status",
     payload: JSON.stringify(willPayload),
@@ -58,7 +59,19 @@ function publishData() {
   };
 
   // Fitur MQTT: Publish dengan QoS 1 (At least once)
-  client.publish(`campus/occupancy/${room.id}/count`, JSON.stringify(data), { qos: 1, retain: true });
+  // Fitur MQTT: Message Expiry & User Properties & Topic Alias
+  client.publish(`campus/occupancy/${room.id}/count`, JSON.stringify(data), { 
+    qos: 1, 
+    retain: true,
+    properties: {
+      messageExpiryInterval: 30, // Data okupansi kadaluarsa dalam 30 detik (data cepat berubah)
+      topicAlias: 3, // Fitur MQTT: Topic Alias — mengganti string topic panjang dengan integer untuk efisiensi bandwidth
+      userProperties: {
+        'sensor-type': 'PIR-Motion',
+        'location-building': 'Gedung Utama',
+      }
+    }
+  });
 
-  console.log(`[Occ Publisher] Published Okupansi ${room.name}: ${count}/${room.capacity} (${percentage}%)`);
+  console.log(`[Occ Publisher] Published Okupansi ${room.name}: ${count}/${room.capacity} (${percentage}%) (dengan Expiry & Metadata)`);
 }

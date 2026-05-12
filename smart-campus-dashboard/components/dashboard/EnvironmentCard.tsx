@@ -1,10 +1,18 @@
 "use client";
 
+<<<<<<< Updated upstream
 import { motion } from "framer-motion";
 import { Thermometer, Droplets, Wind } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import type { RoomEnvironment } from "@/lib/types";
+=======
+import { motion } from 'framer-motion'
+import { Thermometer, Droplets, Wind, Cpu, Building } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import type { RoomEnvironment } from '@/lib/types'
+>>>>>>> Stashed changes
 
 interface EnvironmentCardProps {
   room: RoomEnvironment;
@@ -46,6 +54,12 @@ function MetricRow({
 }
 
 export function EnvironmentCard({ room, index }: EnvironmentCardProps) {
+<<<<<<< Updated upstream
+=======
+  const tempStatus = getTemperatureStatus(room.temperature)
+  const hasMetadata = room.metadata?.sensorType || room.metadata?.locationBuilding
+
+>>>>>>> Stashed changes
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -69,6 +83,25 @@ export function EnvironmentCard({ room, index }: EnvironmentCardProps) {
             pulse={!!room.lastUpdated}
           />
         </div>
+
+        {/* Fitur MQTT: Menampilkan User Properties (Metadata) dari sensor */}
+        {/* Metadata ini dikirim oleh publisher-env sebagai MQTT v5 User Properties */}
+        {hasMetadata && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {room.metadata.sensorType && (
+              <div className="flex items-center gap-1 bg-accent/10 border border-accent/20 rounded-md px-2 py-1">
+                <Cpu size={10} className="text-accent" />
+                <span className="text-accent text-xs font-mono">{room.metadata.sensorType}</span>
+              </div>
+            )}
+            {room.metadata.locationBuilding && (
+              <div className="flex items-center gap-1 bg-success/10 border border-success/20 rounded-md px-2 py-1">
+                <Building size={10} className="text-success" />
+                <span className="text-success text-xs font-mono">{room.metadata.locationBuilding}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Metrics */}
         <div className="mt-2">

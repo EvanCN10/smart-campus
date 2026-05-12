@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { DashboardState } from "@/lib/types";
+import { create } from 'zustand'
+import { DashboardState, EnvironmentData, OccupancyData, AlertData, AnnouncementData, SensorMetadata } from '@/lib/types'
 
 // MAX_CHART_POINTS: berapa data point yang disimpan untuk chart
 // Kalau backend kirim data tiap 3 detik, 40 point = ~2 menit history
@@ -14,10 +14,11 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   alerts: [],
   systemStatus: {},
   latestAnnouncement: null,
+  selectedRoomFilter: null,
 
   setConnectionStatus: (status) => set({ connectionStatus: status }),
 
-  updateEnvironment: (roomId, metric, data) =>
+  updateEnvironment: (roomId, metric, data, metadata?) =>
     set((state) => {
       // Update atau buat entry baru untuk ruangan ini
       const existing = state.environments[roomId] ?? {
@@ -27,12 +28,15 @@ export const useDashboardStore = create<DashboardState>((set) => ({
         humidity: null,
         airQuality: null,
         lastUpdated: null,
+        metadata: { sensorType: null, locationBuilding: null },
       };
 
       const updated = {
         ...existing,
         [metric]: data.value,
         lastUpdated: data.timestamp,
+        // Fitur MQTT: Simpan User Properties (Metadata) jika ada
+        metadata: metadata ?? existing.metadata,
       };
 
       // Tambah data point ke chart history
@@ -102,4 +106,5 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     })),
 
   setAnnouncement: (data) => set({ latestAnnouncement: data }),
+  setSelectedRoomFilter: (roomId) => set({ selectedRoomFilter: roomId }),
 }));

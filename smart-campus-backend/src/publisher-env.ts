@@ -18,6 +18,7 @@ const willPayload: SystemStatusData = {
 
 const client = mqtt.connect(brokerUrl, {
   clientId: `publisher_env_${Math.random().toString(16).slice(3)}`,
+  protocolVersion: 5, // Pastikan menggunakan MQTT v5 untuk mendukung properties
   will: {
     topic: "campus/system/sensor-environment/status",
     payload: JSON.stringify(willPayload),
@@ -46,7 +47,39 @@ client.on("connect", () => {
     retain: true,
   });
 
+  // Fitur MQTT: Request-Response Pattern (Responder)
+  // Subscribe ke topik request
+  client.subscribe("campus/system/request/health");
+
   setInterval(publishData, 5000);
+});
+
+client.on("message", (topic, message, packet) => {
+  if (topic === "campus/system/request/health") {
+    console.log("\n[Env Publisher] Menerima request health check");
+    
+    // Fitur MQTT: Request-Response Pattern
+    // Membaca responseTopic dan correlationData dari requester
+    const responseTopic = packet.properties?.responseTopic;
+    const correlationData = packet.properties?.correlationData;
+    
+    if (responseTopic && correlationData) {
+      const responsePayload = JSON.stringify({
+        status: "ok",
+        service: "sensor-environment",
+        uptime: process.uptime()
+      });
+      
+      // Mengirim balasan ke responseTopic yang diminta
+      client.publish(responseTopic, responsePayload, {
+        qos: 1,
+        properties: {
+          correlationData: correlationData // Mengembalikan correlationData yang sama
+        }
+      });
+      console.log(`[Env Publisher] Membalas ke ${responseTopic} dengan correlationData`);
+    }
+  }
 });
 
 function publishData() {
@@ -70,8 +103,33 @@ function publishData() {
 
   // Fitur MQTT: Publish dengan QoS 0 dan Retain True
   // Retain memastikan subscriber baru langsung mendapat data suhu/kelembapan terakhir
-  client.publish(`campus/environment/${room.id}/temperature`, JSON.stringify(temp), { qos: 0, retain: true });
-  client.publish(`campus/environment/${room.id}/humidity`, JSON.stringify(humidity), { qos: 0, retain: true });
+  
+  // Fitur MQTT: Message Expiry & User Properties & Topic Alias
+  const commonProperties = {
+    messageExpiryInterval: 60, // Pesan kadaluarsa dalam 60 detik jika belum diterima
+    userProperties: {
+      'sensor-type': 'DHT22',
+      'location-building': 'Gedung Utama',
+    }
+  };
 
-  console.log(`[Env Publisher] Published Suhu & Kelembapan untuk ${room.name}`);
+  client.publish(`campus/environment/${room.id}/temperature`, JSON.stringify(temp), { 
+    qos: 0, 
+    retain: true,
+    properties: {
+      ...commonProperties,
+      topicAlias: 1 // Fitur MQTT: Topic Alias untuk mengoptimalkan panjang payload
+    }
+  });
+  
+  client.publish(`campus/environment/${room.id}/humidity`, JSON.stringify(humidity), { 
+    qos: 0, 
+    retain: true,
+    properties: {
+      ...commonProperties,
+      topicAlias: 2
+    }
+  });
+
+  console.log(`[Env Publisher] Published Suhu & Kelembapan untuk ${room.name} (dengan Expiry, Metadata, Alias)`);
 }

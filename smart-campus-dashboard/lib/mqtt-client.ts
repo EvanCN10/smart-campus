@@ -35,7 +35,7 @@ export function getMqttClient(): MqttClient {
     connectTimeout: 10000, // Timeout 10 detik
     reconnectPeriod: 3000, // Coba reconnect tiap 3 detik
     keepalive: 60, // Ping broker tiap 60 detik agar koneksi tidak mati
-    protocolVersion: 5, // MQTT v5 (MQTT v3.1.1 juga ok)
+    protocolVersion: 5, // MQTT v5 (wajib untuk User Properties & Topic Alias)
   });
 
   // ── Event: Berhasil connect ──────────────────────────────────
@@ -56,9 +56,10 @@ export function getMqttClient(): MqttClient {
   // ── Event: Pesan masuk ───────────────────────────────────────
   // Ini adalah jantung dari frontend realtime
   // Setiap pesan dari broker akan masuk ke sini
-  clientInstance.on("message", (topic: string, payload: Buffer) => {
+  clientInstance.on("message", (topic: string, payload: Buffer, packet: any) => {
     // Delegasikan parsing ke topic-parser.ts
-    parseMqttMessage(topic, payload);
+    // Fitur MQTT: Meneruskan packet untuk membaca User Properties (Metadata)
+    parseMqttMessage(topic, payload, packet);
   });
 
   // ── Event: Koneksi terputus ──────────────────────────────────
@@ -88,9 +89,25 @@ export function getMqttClient(): MqttClient {
   return clientInstance;
 }
 
+// Fitur Dashboard: Publish command dari dashboard ke backend via MQTT
+// Ini memungkinkan kontrol interaktif dari dashboard
+export function publishFromDashboard(topic: string, payload: string, qos: 0 | 1 | 2 = 1): void {
+  if (clientInstance && clientInstance.connected) {
+    clientInstance.publish(topic, payload, { qos });
+    console.log(`[MQTT] Published to ${topic}:`, payload);
+  } else {
+    console.warn("[MQTT] Cannot publish - client not connected");
+  }
+}
+
 export function disconnectMqtt(): void {
   if (clientInstance) {
     clientInstance.end();
     clientInstance = null;
   }
+}
+
+export function reconnectMqtt(): void {
+  disconnectMqtt();
+  getMqttClient();
 }

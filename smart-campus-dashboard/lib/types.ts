@@ -38,6 +38,12 @@ export interface AnnouncementData {
   timestamp: string;
 }
 
+// MQTT v5 User Properties (Metadata) yang dikirim oleh publisher
+export interface SensorMetadata {
+  sensorType: string | null;
+  locationBuilding: string | null;
+}
+
 // Store State Types
 
 export interface RoomEnvironment {
@@ -47,6 +53,8 @@ export interface RoomEnvironment {
   humidity: number | null;
   airQuality: number | null;
   lastUpdated: string | null;
+  // Fitur MQTT: User Properties (Metadata) dari sensor
+  metadata: SensorMetadata;
 }
 
 export interface RoomOccupancy {
@@ -93,16 +101,21 @@ export interface DashboardState {
   // Announcements
   latestAnnouncement: AnnouncementData | null;
 
+  // Room filter: null = semua room, string = roomId yang dipilih
+  selectedRoomFilter: string | null;
+
   // Actions
   setConnectionStatus: (status: MqttConnectionStatus) => void;
   updateEnvironment: (
     roomId: string,
     metric: "temperature" | "humidity" | "airQuality",
     data: EnvironmentData,
+    metadata?: SensorMetadata,
   ) => void;
   updateOccupancy: (roomId: string, data: OccupancyData) => void;
   addAlert: (alert: AlertData) => void;
   clearAlerts: () => void;
   updateSystemStatus: (service: string, status: "online" | "offline") => void;
   setAnnouncement: (data: AnnouncementData) => void;
+  setSelectedRoomFilter: (roomId: string | null) => void;
 }

@@ -16,6 +16,7 @@ const willPayload: SystemStatusData = {
 
 const client = mqtt.connect(brokerUrl, {
   clientId: `publisher_admin_${Math.random().toString(16).slice(3)}`,
+  protocolVersion: 5, // MQTT v5 untuk mendukung user properties dan request-response
   will: {
     topic: "campus/system/system-admin/status",
     payload: JSON.stringify(willPayload),
@@ -34,9 +35,37 @@ client.on("connect", () => {
   };
   client.publish("campus/system/system-admin/status", JSON.stringify(onlinePayload), { qos: 1, retain: true });
 
+  // Subscribe ke topik balasan untuk menangkap response (Request-Response Pattern)
+  client.subscribe("campus/system/response/health");
+
   setInterval(publishAnnouncement, 20000);
   setInterval(publishRandomAlert, 35000);
+
+  // Kirim request health check setiap 15 detik
+  setInterval(requestHealthCheck, 15000);
 });
+
+client.on("message", (topic, message, packet) => {
+  if (topic === "campus/system/response/health") {
+    console.log(`\n[Admin Publisher] Menerima balasan (Response) dari ${packet.properties?.correlationData}:`);
+    console.log(`Payload: ${message.toString()}`);
+  }
+});
+
+function requestHealthCheck() {
+  const correlationData = `req-${Date.now()}`;
+  console.log(`\n[Admin Publisher] Mengirim request health check (Correlation ID: ${correlationData})...`);
+
+  // Fitur MQTT: Request-Response Pattern
+  // Mengirim pesan request dan menyertakan topik balasan (responseTopic)
+  client.publish("campus/system/request/health", Buffer.from(JSON.stringify({ type: "health-check" })), {
+    qos: 1,
+    properties: {
+      responseTopic: "campus/system/response/health",
+      correlationData: Buffer.from(correlationData)
+    }
+  });
+}
 
 function publishAnnouncement() {
   const messages = [
@@ -52,14 +81,25 @@ function publishAnnouncement() {
   };
 
   // Fitur MQTT: QoS 2 (Exactly once) untuk pesan penting seperti pengumuman
-  client.publish(`campus/announcements/broadcast`, JSON.stringify(data), { qos: 2 });
-  console.log(`[Admin Publisher] Published Announcement (QoS 2)`);
+  // Fitur MQTT: Message Expiry — pengumuman kadaluarsa dalam 120 detik
+  // Fitur MQTT: User Properties — metadata sumber pengumuman
+  client.publish(`campus/announcements/broadcast`, Buffer.from(JSON.stringify(data)), {
+    qos: 2,
+    properties: {
+      messageExpiryInterval: 120, // Pengumuman kadaluarsa dalam 2 menit
+      userProperties: {
+        'source': 'admin-service',
+        'priority': 'normal',
+      }
+    }
+  });
+  console.log(`[Admin Publisher] Published Announcement (QoS 2, Expiry: 120s)`);
 }
 
 function publishRandomAlert() {
   const rooms = ["Lab A", "Ruang Kelas B", "Perpustakaan"];
   const location = rooms[Math.floor(Math.random() * rooms.length)];
-  
+
   const data: AlertData = {
     id: `alert-${Date.now()}`,
     severity: "warning",
@@ -68,6 +108,16 @@ function publishRandomAlert() {
     timestamp: new Date().toISOString(),
   };
 
-  client.publish(`campus/alerts/warning/${location.toLowerCase().replace(/\s+/g, '-')}`, JSON.stringify(data), { qos: 1 });
-  console.log(`[Admin Publisher] Published Alert for ${location}`);
+  // Fitur MQTT: Message Expiry — alert kadaluarsa dalam 90 detik
+  client.publish(`campus/alerts/warning/${location.toLowerCase().replace(/\s+/g, '-')}`, Buffer.from(JSON.stringify(data)), {
+    qos: 1,
+    properties: {
+      messageExpiryInterval: 90, // Alert kadaluarsa dalam 90 detik
+      userProperties: {
+        'source': 'security-system',
+        'zone': 'campus-main',
+      }
+    }
+  });
+  console.log(`[Admin Publisher] Published Alert for ${location} (Expiry: 90s)`);
 }
