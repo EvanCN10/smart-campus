@@ -9,6 +9,7 @@ import { EnvironmentCard } from "@/components/dashboard/EnvironmentCard";
 import { OccupancyCard } from "@/components/dashboard/OccupancyCard";
 import { AlertPanel } from "@/components/dashboard/AlertPanel";
 import { TemperatureChart } from "@/components/charts/TemperatureChart";
+import { requestRoomSnapshot } from "@/lib/mqtt-client";
 
 function StatPill({
   active,
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const occupancies = useDashboardStore((s) => s.occupancies);
   const alerts = useDashboardStore((s) => s.alerts);
   const connectionStatus = useDashboardStore((s) => s.connectionStatus);
+  const roomSnapshot = useDashboardStore((s) => s.roomSnapshot);
 
   const [activeModal, setActiveModal] = useState<SummaryModalKey | null>(null);
   const [roomFilter, setRoomFilter] = useState<RoomFilter>("all");
@@ -259,6 +261,76 @@ export default function DashboardPage() {
 
                 {activeModal === "Rooms Monitored" && (
                   <div>
+                    <div className="bg-bg-secondary border border-border-main rounded-2xl p-4 mb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <p className="text-text-primary font-semibold text-sm">
+                            Request–Response: Room Snapshot
+                          </p>
+                          <p className="text-text-muted text-xs mt-0.5">
+                            Ambil snapshot terbaru dari backend (bukan
+                            streaming).
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const target =
+                              roomFilter === "all" ? "all" : roomFilter;
+                            requestRoomSnapshot(target);
+                          }}
+                          className="px-4 py-2 rounded-xl text-xs font-semibold border bg-surface hover:bg-surface-hover border-border-main text-text-primary transition-colors"
+                        >
+                          Request Snapshot
+                        </button>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <StatPill active={roomSnapshot.status === "success"}>
+                          Status: {roomSnapshot.status}
+                        </StatPill>
+                        {roomSnapshot.lastRoomId && (
+                          <StatPill active>
+                            Room: {roomSnapshot.lastRoomId}
+                          </StatPill>
+                        )}
+                        {roomSnapshot.requestedAt && (
+                          <StatPill active={false}>
+                            Requested: {formatTime(roomSnapshot.requestedAt)}
+                          </StatPill>
+                        )}
+                        {roomSnapshot.receivedAt && (
+                          <StatPill active={false}>
+                            Received: {formatTime(roomSnapshot.receivedAt)}
+                          </StatPill>
+                        )}
+                      </div>
+
+                      {roomSnapshot.status === "error" &&
+                        roomSnapshot.error && (
+                          <p className="text-danger text-xs mt-2">
+                            {roomSnapshot.error}
+                          </p>
+                        )}
+
+                      {roomSnapshot.status === "success" &&
+                        roomSnapshot.lastResponse && (
+                          <p className="text-text-muted text-xs mt-2">
+                            Environments:{" "}
+                            {
+                              Object.keys(
+                                roomSnapshot.lastResponse.environments,
+                              ).length
+                            }{" "}
+                            · Occupancies:{" "}
+                            {
+                              Object.keys(roomSnapshot.lastResponse.occupancies)
+                                .length
+                            }
+                          </p>
+                        )}
+                    </div>
+
                     <div className="flex flex-wrap items-center gap-2 mb-4">
                       <p className="text-text-muted text-xs mr-1">
                         Filter room:

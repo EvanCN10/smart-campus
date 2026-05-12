@@ -4,7 +4,8 @@ import { EnvironmentData, SystemStatusData } from "./types";
 
 dotenv.config();
 
-const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://broker.hivemq.com:1883";
+const brokerUrl =
+  process.env.MQTT_BROKER_URL || "mqtt://broker.hivemq.com:1883";
 
 console.log(`[Env Publisher] Menghubungkan ke ${brokerUrl}...`);
 
@@ -18,6 +19,13 @@ const willPayload: SystemStatusData = {
 
 const client = mqtt.connect(brokerUrl, {
   clientId: `publisher_env_${Math.random().toString(16).slice(3)}`,
+  protocolVersion: 5,
+  // Flow control sederhana: jangan antri QoS0 saat offline
+  queueQoSZero: false,
+  // Rubric: Topic Alias (negosiasi)
+  properties: {
+    topicAliasMaximum: 10,
+  },
   will: {
     topic: "campus/system/sensor-environment/status",
     payload: JSON.stringify(willPayload),
@@ -41,15 +49,29 @@ client.on("connect", () => {
     status: "online",
     timestamp: new Date().toISOString(),
   };
-  client.publish("campus/system/sensor-environment/status", JSON.stringify(onlinePayload), {
-    qos: 1,
-    retain: true,
-  });
+  client.publish(
+    "campus/system/sensor-environment/status",
+    JSON.stringify(onlinePayload),
+    {
+      qos: 1,
+      retain: true,
+      // Rubric: Topic Alias + User Properties
+      properties: {
+        topicAlias: 1,
+        userProperties: {
+          source: "publisher-env",
+          service: "sensor-environment",
+          kind: "system-status",
+        },
+      },
+    },
+  );
 
   setInterval(publishData, 5000);
 });
 
 function publishData() {
+  if (!client.connected) return;
   const room = rooms[Math.floor(Math.random() * rooms.length)];
 
   const temp: EnvironmentData = {
@@ -68,10 +90,63 @@ function publishData() {
     timestamp: new Date().toISOString(),
   };
 
+  const airQuality: EnvironmentData = {
+    value: Math.floor(Math.random() * 120),
+    unit: "AQI",
+    roomId: room.id,
+    roomName: room.name,
+    timestamp: new Date().toISOString(),
+  };
+
   // Fitur MQTT: Publish dengan QoS 0 dan Retain True
   // Retain memastikan subscriber baru langsung mendapat data suhu/kelembapan terakhir
-  client.publish(`campus/environment/${room.id}/temperature`, JSON.stringify(temp), { qos: 0, retain: true });
-  client.publish(`campus/environment/${room.id}/humidity`, JSON.stringify(humidity), { qos: 0, retain: true });
+  client.publish(
+    `campus/environment/${room.id}/temperature`,
+    JSON.stringify(temp),
+    {
+      qos: 0,
+      retain: true,
+      // Rubric: User Properties (Metadata)
+      properties: {
+        userProperties: {
+          source: "publisher-env",
+          roomId: room.id,
+          metric: "temperature",
+        },
+      },
+    },
+  );
+  client.publish(
+    `campus/environment/${room.id}/humidity`,
+    JSON.stringify(humidity),
+    {
+      qos: 0,
+      retain: true,
+      properties: {
+        userProperties: {
+          source: "publisher-env",
+          roomId: room.id,
+          metric: "humidity",
+        },
+      },
+    },
+  );
+
+  client.publish(
+    `campus/environment/${room.id}/air-quality`,
+    JSON.stringify(airQuality),
+    {
+      qos: 0,
+      retain: true,
+      properties: {
+        userProperties: {
+          source: "publisher-env",
+          roomId: room.id,
+          metric: "air-quality",
+        },
+      },
+    },
+  );
 
   console.log(`[Env Publisher] Published Suhu & Kelembapan untuk ${room.name}`);
 }

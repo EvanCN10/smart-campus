@@ -8,8 +8,9 @@
     "dev:env": "nodemon src/publisher-env.ts",
     "dev:occ": "nodemon src/publisher-occ.ts",
     "dev:admin": "nodemon src/publisher-admin.ts",
+    "dev:rr": "nodemon src/responder-rr.ts",
     "dev:logger": "nodemon src/subscriber-logger.ts",
-    "dev": "concurrently \"npm run dev:env\" \"npm run dev:occ\" \"npm run dev:admin\" \"npm run dev:logger\"",
+    "dev": "concurrently \"npm run dev:env\" \"npm run dev:occ\" \"npm run dev:admin\" \"npm run dev:rr\" \"npm run dev:logger\"",
     "build": "tsc"
   },
   "keywords": [],

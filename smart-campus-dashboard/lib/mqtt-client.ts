@@ -13,6 +13,19 @@ const BROKER_URL =
   "wss://broker.hivemq.com:8884/mqtt";
 const CLIENT_ID = `smart-campus-dashboard-${Math.random().toString(16).slice(2, 8)}`;
 
+const RR_REQUEST_TOPIC = "campus/rr/room-snapshot/request";
+const RR_RESPONSE_TOPIC = `campus/rr/room-snapshot/response/${CLIENT_ID}`;
+
+function createRequestId(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return uuid;
+  return `req-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+export function getDashboardClientId(): string {
+  return CLIENT_ID;
+}
+
 // Topic yang di-subscribe frontend
 const SUBSCRIBE_TOPICS = [
   "campus/#", // Subscribe semua topic di bawah campus/
@@ -36,6 +49,10 @@ export function getMqttClient(): MqttClient {
     reconnectPeriod: 3000, // Coba reconnect tiap 3 detik
     keepalive: 60, // Ping broker tiap 60 detik agar koneksi tidak mati
     protocolVersion: 5, // MQTT v5 (MQTT v3.1.1 juga ok)
+    // Negosiasi fitur v5 (untuk rubric: Topic Alias)
+    properties: {
+      topicAliasMaximum: 10,
+    },
   });
 
   // ── Event: Berhasil connect ──────────────────────────────────
@@ -86,6 +103,54 @@ export function getMqttClient(): MqttClient {
   });
 
   return clientInstance;
+}
+
+export function requestRoomSnapshot(roomId: string | "all"): string {
+  const requestId = createRequestId();
+  const store = useDashboardStore.getState();
+
+  store.setRoomSnapshotPending(requestId, roomId);
+
+  const client = getMqttClient();
+  if (!client.connected) {
+    store.setRoomSnapshotError("MQTT belum terhubung");
+    return requestId;
+  }
+
+  const payload = {
+    requestId,
+    roomId,
+    responseTopic: RR_RESPONSE_TOPIC,
+    timestamp: new Date().toISOString(),
+  };
+
+  client.publish(
+    RR_REQUEST_TOPIC,
+    JSON.stringify(payload),
+    {
+      qos: 1,
+      properties: {
+        // MQTT v5 request-response (rubric)
+        responseTopic: RR_RESPONSE_TOPIC,
+        correlationData: Buffer.from(requestId),
+
+        // Rubric: Message Expiry + User Properties
+        messageExpiryInterval: 30,
+        userProperties: {
+          feature: "request-response",
+          kind: "room-snapshot-request",
+          clientId: CLIENT_ID,
+        },
+      },
+    },
+    (err) => {
+      if (err) {
+        store.setRoomSnapshotError("Gagal mengirim request");
+      }
+    },
+  );
+
+  return requestId;
 }
 
 export function disconnectMqtt(): void {

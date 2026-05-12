@@ -4,9 +4,17 @@ import { OccupancyData, SystemStatusData } from "./types";
 
 dotenv.config();
 
-const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://broker.hivemq.com:1883";
+const brokerUrl =
+  process.env.MQTT_BROKER_URL || "mqtt://broker.hivemq.com:1883";
 
 console.log(`[Occ Publisher] Menghubungkan ke ${brokerUrl}...`);
+
+// Flow Control / Overload Scenario (minimal)
+// - MAX_INFLIGHT membatasi publish QoS>0 yang belum selesai
+// - OCC_INTERVAL_MS bisa dipercepat untuk simulasi overload
+const MAX_INFLIGHT = Number(process.env.MAX_INFLIGHT ?? 20);
+const OCC_INTERVAL_MS = Number(process.env.OCC_INTERVAL_MS ?? 7000);
+let inflight = 0;
 
 const willPayload: SystemStatusData = {
   service: "sensor-occupancy",
@@ -16,6 +24,10 @@ const willPayload: SystemStatusData = {
 
 const client = mqtt.connect(brokerUrl, {
   clientId: `publisher_occ_${Math.random().toString(16).slice(3)}`,
+  protocolVersion: 5,
+  properties: {
+    topicAliasMaximum: 10,
+  },
   will: {
     topic: "campus/system/sensor-occupancy/status",
     payload: JSON.stringify(willPayload),
@@ -38,12 +50,35 @@ client.on("connect", () => {
     status: "online",
     timestamp: new Date().toISOString(),
   };
-  client.publish("campus/system/sensor-occupancy/status", JSON.stringify(onlinePayload), { qos: 1, retain: true });
+  client.publish(
+    "campus/system/sensor-occupancy/status",
+    JSON.stringify(onlinePayload),
+    {
+      qos: 1,
+      retain: true,
+      properties: {
+        topicAlias: 2,
+        userProperties: {
+          source: "publisher-occ",
+          service: "sensor-occupancy",
+          kind: "system-status",
+        },
+      },
+    },
+  );
 
-  setInterval(publishData, 7000);
+  setInterval(publishData, OCC_INTERVAL_MS);
 });
 
 function publishData() {
+  if (!client.connected) return;
+  if (inflight >= MAX_INFLIGHT) {
+    console.log(
+      `[Occ Publisher] FlowControl: skip publish (inflight=${inflight})`,
+    );
+    return;
+  }
+
   const room = rooms[Math.floor(Math.random() * rooms.length)];
   const count = Math.floor(Math.random() * (room.capacity + 1));
   const percentage = Math.round((count / room.capacity) * 100);
@@ -58,7 +93,30 @@ function publishData() {
   };
 
   // Fitur MQTT: Publish dengan QoS 1 (At least once)
-  client.publish(`campus/occupancy/${room.id}/count`, JSON.stringify(data), { qos: 1, retain: true });
+  inflight++;
+  client.publish(
+    `campus/occupancy/${room.id}/count`,
+    JSON.stringify(data),
+    {
+      qos: 1,
+      retain: true,
+      properties: {
+        userProperties: {
+          source: "publisher-occ",
+          roomId: room.id,
+          kind: "occupancy",
+        },
+      },
+    },
+    (err) => {
+      inflight = Math.max(0, inflight - 1);
+      if (err) {
+        console.error("[Occ Publisher] Publish error:", err);
+      }
+    },
+  );
 
-  console.log(`[Occ Publisher] Published Okupansi ${room.name}: ${count}/${room.capacity} (${percentage}%)`);
+  console.log(
+    `[Occ Publisher] Published Okupansi ${room.name}: ${count}/${room.capacity} (${percentage}%)`,
+  );
 }

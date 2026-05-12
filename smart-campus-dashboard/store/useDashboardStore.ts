@@ -15,6 +15,16 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   systemStatus: {},
   latestAnnouncement: null,
 
+  roomSnapshot: {
+    status: "idle",
+    lastRequestId: null,
+    lastRoomId: null,
+    requestedAt: null,
+    receivedAt: null,
+    lastResponse: null,
+    error: null,
+  },
+
   setConnectionStatus: (status) => set({ connectionStatus: status }),
 
   updateEnvironment: (roomId, metric, data) =>
@@ -102,4 +112,60 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     })),
 
   setAnnouncement: (data) => set({ latestAnnouncement: data }),
+
+  setRoomSnapshotPending: (requestId, roomId) =>
+    set((state) => ({
+      roomSnapshot: {
+        ...state.roomSnapshot,
+        status: "pending",
+        lastRequestId: requestId,
+        lastRoomId: roomId,
+        requestedAt: new Date().toISOString(),
+        receivedAt: null,
+        error: null,
+      },
+    })),
+
+  setRoomSnapshotSuccess: (response) =>
+    set((state) => {
+      // Kalau ada request aktif, bisa filter response yang tidak sesuai
+      if (
+        state.roomSnapshot.lastRequestId &&
+        response.requestId !== state.roomSnapshot.lastRequestId
+      ) {
+        return state;
+      }
+
+      return {
+        roomSnapshot: {
+          ...state.roomSnapshot,
+          status: "success",
+          lastResponse: response,
+          receivedAt: new Date().toISOString(),
+          error: null,
+        },
+      };
+    }),
+
+  setRoomSnapshotError: (error) =>
+    set((state) => ({
+      roomSnapshot: {
+        ...state.roomSnapshot,
+        status: "error",
+        error,
+      },
+    })),
+
+  clearRoomSnapshot: () =>
+    set({
+      roomSnapshot: {
+        status: "idle",
+        lastRequestId: null,
+        lastRoomId: null,
+        requestedAt: null,
+        receivedAt: null,
+        lastResponse: null,
+        error: null,
+      },
+    }),
 }));

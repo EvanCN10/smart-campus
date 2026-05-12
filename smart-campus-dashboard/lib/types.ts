@@ -38,6 +38,35 @@ export interface AnnouncementData {
   timestamp: string;
 }
 
+// Request-Response (MQTT v5)
+
+export interface RoomSnapshotRequest {
+  requestId: string;
+  roomId: string | "all";
+  responseTopic: string;
+  timestamp: string;
+}
+
+export interface RoomSnapshotResponse {
+  requestId: string;
+  roomId: string | "all";
+  environments: Record<string, RoomEnvironment>;
+  occupancies: Record<string, RoomOccupancy>;
+  timestamp: string;
+}
+
+export type RoomSnapshotStatus = "idle" | "pending" | "success" | "error";
+
+export interface RoomSnapshotState {
+  status: RoomSnapshotStatus;
+  lastRequestId: string | null;
+  lastRoomId: string | "all" | null;
+  requestedAt: string | null;
+  receivedAt: string | null;
+  lastResponse: RoomSnapshotResponse | null;
+  error: string | null;
+}
+
 // Store State Types
 
 export interface RoomEnvironment {
@@ -93,6 +122,9 @@ export interface DashboardState {
   // Announcements
   latestAnnouncement: AnnouncementData | null;
 
+  // Request-Response snapshot
+  roomSnapshot: RoomSnapshotState;
+
   // Actions
   setConnectionStatus: (status: MqttConnectionStatus) => void;
   updateEnvironment: (
@@ -105,4 +137,10 @@ export interface DashboardState {
   clearAlerts: () => void;
   updateSystemStatus: (service: string, status: "online" | "offline") => void;
   setAnnouncement: (data: AnnouncementData) => void;
+
+  // Request-Response actions
+  setRoomSnapshotPending: (requestId: string, roomId: string | "all") => void;
+  setRoomSnapshotSuccess: (response: RoomSnapshotResponse) => void;
+  setRoomSnapshotError: (error: string) => void;
+  clearRoomSnapshot: () => void;
 }
