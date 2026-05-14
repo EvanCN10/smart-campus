@@ -1,7 +1,7 @@
 # 🎓 Smart Campus Monitoring System (MQTT v5 Integration)
 
-**Oleh:** Ahmad Yazid Arifuddin (NRP 5027241040)
-
+- Ahmad Yazid Arifuddin (NRP 5027241040)
+- Evan Christian Nainggolan (NRP 5027241026)
 ---
 
 ## 📝 Deskripsi Singkat
