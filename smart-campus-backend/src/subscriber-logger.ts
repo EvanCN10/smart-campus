@@ -11,9 +11,8 @@ const client = mqtt.connect(brokerUrl, {
   clientId: `subscriber_logger_${Math.random().toString(16).slice(3)}`,
   protocolVersion: 5, // Wajib MQTT v5 untuk Shared Subscription standar dan Flow Control
   properties: {
-    // Fitur MQTT: Flow Control / Overload Scenario
-    // Membatasi jumlah pesan (QoS 1/2) yang belum di-acknowledge (in-flight) maksimum 5.
-    // Mencegah subscriber kewalahan saat terjadi burst data (overload).
+    // Fitur MQTT (Rubrik 10): Flow Control / Overload Scenario
+    // Membatasi in-flight pesan maks 5 agar subscriber tidak kewalahan (overload) saat terjadi burst data
     receiveMaximum: 5 
   }
 });
@@ -31,13 +30,11 @@ client.on("connect", () => {
   console.log("[Logger Subscriber] Terhubung!");
   console.log("[Logger Subscriber] Flow Control: receiveMaximum = 5 (max 5 pesan QoS 1/2 in-flight)");
   
-  // Fitur MQTT: Wildcard Subscription & Shared Subscription
-  // Menggunakan '#' (multi-level) dan '+' (single-level) secara tepat
-  // Fitur MQTT: Shared Subscription dengan prefix $share/<group-name>/
+  // Fitur MQTT (Rubrik 2 & 9): Wildcard (+, #) & Shared Subscription ($share/)
   const topicsToSubscribe = [
-    "$share/logger-group/campus/alerts/#",        // Semua sub-topic alert
-    "$share/logger-group/campus/announcements/#", // Semua sub-topic announcement
-    "$share/logger-group/campus/system/+/status"  // Semua status dari berbagai sistem (single-level)
+    "$share/logger-group/campus/alerts/#", // (Rubrik 9) Shared Subscription: Load balancing di antara anggota logger-group
+    "$share/logger-group/campus/announcements/#", // (Rubrik 2) Wildcard (#): Menangkap semua sub-topik setelah announcements
+    "$share/logger-group/campus/system/+/status" // (Rubrik 2) Wildcard (+): Menangkap semua nama service tepat satu level hirarki
   ];
   
   client.subscribe(topicsToSubscribe, { qos: 1 }, (err) => {
@@ -72,32 +69,28 @@ client.on("message", (topic, message, packet) => {
   if (topic.includes("alerts") || topic.includes("announcements") || topic.includes("environment") || topic.includes("status")) {
     console.log(`[LOGGER #${messageCount}] Topic: ${topic} | QoS: ${packet.qos} | Retained: ${packet.retain}`);
     
-    // Fitur MQTT: Membaca User Properties (Metadata)
+    // Fitur MQTT (Rubrik 5): Membaca User Properties (Metadata)
     if (packet.properties && packet.properties.userProperties) {
       console.log(`[LOGGER] Metadata (User Properties):`, packet.properties.userProperties);
     }
     
-    // Fitur MQTT: Menampilkan Message Expiry jika ada
+    // Fitur MQTT (Rubrik 4): Menampilkan Message Expiry Interval yang tersisa
     if (packet.properties && packet.properties.messageExpiryInterval !== undefined) {
       console.log(`[LOGGER] Message Expiry: ${packet.properties.messageExpiryInterval}s remaining`);
     }
     
-    // Fitur MQTT: Menampilkan Topic Alias jika ada
-    // Topic Alias mengoptimalkan bandwidth dengan mengganti string topic panjang menjadi integer
+    // Fitur MQTT (Rubrik 6): Menampilkan Topic Alias jika ada (Optimasi panjang string ke integer)
     if (packet.properties && packet.properties.topicAlias !== undefined) {
       console.log(`[LOGGER] Topic Alias: ${packet.properties.topicAlias} (topic "${topic}" dioptimalkan)`);
     }
     
     console.log(`[LOGGER] Payload: ${message.toString()}\n`);
     
-    // Fitur MQTT: Flow Control - Simulasi slow processing
-    // Sengaja delay pemrosesan untuk menunjukkan efek receiveMaximum
-    // Saat burst (banyak pesan masuk sekaligus), broker akan menahan pengiriman
-    // pesan baru karena subscriber belum selesai memproses (ACK tertahan)
-    // NOTE: Node MQTT library auto-ACK, tapi blocking event loop ini
-    // mensimulasikan subscriber yang lambat memproses
+    // Fitur MQTT (Rubrik 10): Flow Control / Overload Scenario
+    // Simulasi delay 100ms per pesan. Ini akan memaksa in-flight pesan menumpuk,
+    // yang akhirnya memicu mekanisme Flow Control (broker berhenti mengirim sementara karena batas receiveMaximum=5).
     const start = Date.now();
-    while(Date.now() - start < 100) {} // Blokir 100ms per pesan
+    while(Date.now() - start < 100) {} 
   }
 });
 

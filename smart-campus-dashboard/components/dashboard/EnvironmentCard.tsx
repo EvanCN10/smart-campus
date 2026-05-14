@@ -1,22 +1,21 @@
 "use client";
 
-<<<<<<< Updated upstream
 import { motion } from "framer-motion";
-import { Thermometer, Droplets, Wind } from "lucide-react";
+import { Thermometer, Droplets, Wind, Cpu, Building } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import type { RoomEnvironment } from "@/lib/types";
-=======
-import { motion } from 'framer-motion'
-import { Thermometer, Droplets, Wind, Cpu, Building } from 'lucide-react'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import type { RoomEnvironment } from '@/lib/types'
->>>>>>> Stashed changes
 
 interface EnvironmentCardProps {
   room: RoomEnvironment;
   index: number;
+}
+
+function getTemperatureStatus(temp: number | null): "success" | "warning" | "danger" {
+  if (temp === null) return "success";
+  if (temp > 35) return "danger";
+  if (temp > 30) return "warning";
+  return "success";
 }
 
 function getAirQualityLabel(aqi: number | null): string {
@@ -54,12 +53,10 @@ function MetricRow({
 }
 
 export function EnvironmentCard({ room, index }: EnvironmentCardProps) {
-<<<<<<< Updated upstream
-=======
   const tempStatus = getTemperatureStatus(room.temperature)
   const hasMetadata = room.metadata?.sensorType || room.metadata?.locationBuilding
 
->>>>>>> Stashed changes
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

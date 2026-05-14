@@ -8,8 +8,7 @@ const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://broker.hivemq.com:1883"
 
 console.log(`[Env Publisher] Menghubungkan ke ${brokerUrl}...`);
 
-// Fitur MQTT: Last Will and Testament (LWT)
-// Jika publisher ini mati tiba-tiba, broker akan otomatis mengirim status offline
+// Fitur MQTT (Rubrik 7): Last Will and Testament (LWT) untuk auto-offline status
 const willPayload: SystemStatusData = {
   service: "sensor-environment",
   status: "offline",
@@ -23,7 +22,7 @@ const client = mqtt.connect(brokerUrl, {
     topic: "campus/system/sensor-environment/status",
     payload: JSON.stringify(willPayload),
     qos: 1,
-    retain: true, // Fitur MQTT: Retain message
+    retain: true, // Fitur MQTT (Rubrik 3): Retain message agar status "offline" tersimpan di broker
   },
 });
 
@@ -36,7 +35,7 @@ const rooms = [
 client.on("connect", () => {
   console.log("[Env Publisher] Terhubung!");
 
-  // Kirim status online (Retained)
+  // Fitur MQTT (Rubrik 3): Kirim status online (Retained message)
   const onlinePayload: SystemStatusData = {
     service: "sensor-environment",
     status: "online",
@@ -47,8 +46,7 @@ client.on("connect", () => {
     retain: true,
   });
 
-  // Fitur MQTT: Request-Response Pattern (Responder)
-  // Subscribe ke topik request
+  // Fitur MQTT (Rubrik 8): Request-Response Pattern (Responder: Subscribe ke request topic)
   client.subscribe("campus/system/request/health");
 
   setInterval(publishData, 5000);
@@ -58,8 +56,7 @@ client.on("message", (topic, message, packet) => {
   if (topic === "campus/system/request/health") {
     console.log("\n[Env Publisher] Menerima request health check");
     
-    // Fitur MQTT: Request-Response Pattern
-    // Membaca responseTopic dan correlationData dari requester
+    // Fitur MQTT (Rubrik 8): Request-Response Pattern (Membaca responseTopic & correlationData dari request)
     const responseTopic = packet.properties?.responseTopic;
     const correlationData = packet.properties?.correlationData;
     
@@ -101,13 +98,12 @@ function publishData() {
     timestamp: new Date().toISOString(),
   };
 
-  // Fitur MQTT: Publish dengan QoS 0 dan Retain True
-  // Retain memastikan subscriber baru langsung mendapat data suhu/kelembapan terakhir
+  // Fitur MQTT (Rubrik 3): Publish QoS 0 dengan Retain True (Agar subscriber baru langsung dapat data terakhir)
   
-  // Fitur MQTT: Message Expiry & User Properties & Topic Alias
+  // Fitur MQTT (Rubrik 4, 5, 6): Message Expiry, User Properties & Topic Alias
   const commonProperties = {
-    messageExpiryInterval: 60, // Pesan kadaluarsa dalam 60 detik jika belum diterima
-    userProperties: {
+    messageExpiryInterval: 60, // (Rubrik 4) Pesan otomatis dihapus broker dalam 60 detik jika belum diterima
+    userProperties: { // (Rubrik 5) Metadata tambahan tanpa merubah struktur payload JSON utama
       'sensor-type': 'DHT22',
       'location-building': 'Gedung Utama',
     }
@@ -118,7 +114,7 @@ function publishData() {
     retain: true,
     properties: {
       ...commonProperties,
-      topicAlias: 1 // Fitur MQTT: Topic Alias untuk mengoptimalkan panjang payload
+      topicAlias: 1 // Fitur MQTT (Rubrik 6): Topic Alias untuk mengoptimalkan panjang payload string topic
     }
   });
   

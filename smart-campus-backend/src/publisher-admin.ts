@@ -8,6 +8,7 @@ const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://broker.hivemq.com:1883"
 
 console.log(`[Admin Publisher] Menghubungkan ke ${brokerUrl}...`);
 
+// Fitur MQTT (Rubrik 7 & 3): Last Will and Testament (LWT) dengan Retained Message
 const willPayload: SystemStatusData = {
   service: "system-admin",
   status: "offline",
@@ -35,7 +36,8 @@ client.on("connect", () => {
   };
   client.publish("campus/system/system-admin/status", JSON.stringify(onlinePayload), { qos: 1, retain: true });
 
-  // Subscribe ke topik balasan untuk menangkap response (Request-Response Pattern)
+  // Fitur MQTT (Rubrik 8): Request-Response Pattern (Subscribe ke topik balasan)
+  // Menangkap response dari service lain berdasarkan correlationData
   client.subscribe("campus/system/response/health");
 
   setInterval(publishAnnouncement, 20000);
@@ -56,8 +58,8 @@ function requestHealthCheck() {
   const correlationData = `req-${Date.now()}`;
   console.log(`\n[Admin Publisher] Mengirim request health check (Correlation ID: ${correlationData})...`);
 
-  // Fitur MQTT: Request-Response Pattern
-  // Mengirim pesan request dan menyertakan topik balasan (responseTopic)
+  // Fitur MQTT (Rubrik 8): Request-Response Pattern
+  // Mengirim pesan request dan menyertakan topik balasan (responseTopic) serta ID korelasi (correlationData)
   client.publish("campus/system/request/health", Buffer.from(JSON.stringify({ type: "health-check" })), {
     qos: 1,
     properties: {
@@ -81,13 +83,12 @@ function publishAnnouncement() {
   };
 
   // Fitur MQTT: QoS 2 (Exactly once) untuk pesan penting seperti pengumuman
-  // Fitur MQTT: Message Expiry — pengumuman kadaluarsa dalam 120 detik
-  // Fitur MQTT: User Properties — metadata sumber pengumuman
+  // Fitur MQTT (Rubrik 4 & 5): Message Expiry & User Properties
   client.publish(`campus/announcements/broadcast`, Buffer.from(JSON.stringify(data)), {
     qos: 2,
     properties: {
-      messageExpiryInterval: 120, // Pengumuman kadaluarsa dalam 2 menit
-      userProperties: {
+      messageExpiryInterval: 120, // (Rubrik 4) Pengumuman kadaluarsa dalam 2 menit agar tidak tertahan terlalu lama jika broker mati
+      userProperties: { // (Rubrik 5) Metadata sumber pengumuman untuk mempermudah interpretasi
         'source': 'admin-service',
         'priority': 'normal',
       }

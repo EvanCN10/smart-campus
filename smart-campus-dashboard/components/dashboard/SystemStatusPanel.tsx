@@ -56,7 +56,7 @@ export function SystemStatusPanel() {
                     status === 'online' ? 'text-success' : 'text-danger'
                   }`}
                 >
-                  {status.toUpperCase()}
+                  {(status || 'UNKNOWN').toUpperCase()}
                 </span>
               </div>
             </motion.div>

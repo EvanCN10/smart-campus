@@ -8,6 +8,7 @@ const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://broker.hivemq.com:1883"
 
 console.log(`[Occ Publisher] Menghubungkan ke ${brokerUrl}...`);
 
+// Fitur MQTT (Rubrik 7 & 3): Last Will and Testament (LWT) & Retained Message
 const willPayload: SystemStatusData = {
   service: "sensor-occupancy",
   status: "offline",
@@ -34,6 +35,7 @@ const rooms = [
 client.on("connect", () => {
   console.log("[Occ Publisher] Terhubung!");
 
+  // Fitur MQTT (Rubrik 3): Retained message untuk status online
   const onlinePayload: SystemStatusData = {
     service: "sensor-occupancy",
     status: "online",
@@ -59,14 +61,14 @@ function publishData() {
   };
 
   // Fitur MQTT: Publish dengan QoS 1 (At least once)
-  // Fitur MQTT: Message Expiry & User Properties & Topic Alias
+  // Fitur MQTT (Rubrik 4, 5, 6): Message Expiry, User Properties & Topic Alias
   client.publish(`campus/occupancy/${room.id}/count`, JSON.stringify(data), { 
     qos: 1, 
     retain: true,
     properties: {
-      messageExpiryInterval: 30, // Data okupansi kadaluarsa dalam 30 detik (data cepat berubah)
-      topicAlias: 3, // Fitur MQTT: Topic Alias — mengganti string topic panjang dengan integer untuk efisiensi bandwidth
-      userProperties: {
+      messageExpiryInterval: 30, // (Rubrik 4) Data okupansi kadaluarsa dalam 30 detik (karena data cepat berubah)
+      topicAlias: 3, // Fitur MQTT (Rubrik 6): Topic Alias — mengganti string topic panjang dengan integer
+      userProperties: { // (Rubrik 5) Menambahkan metadata sensor-type tanpa mengubah isi payload
         'sensor-type': 'PIR-Motion',
         'location-building': 'Gedung Utama',
       }
